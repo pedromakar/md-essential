@@ -6,7 +6,8 @@ const Notification = require('../models/notification');
 const JWT_SECRET = process.env.JWT_SECRET || 'change_this_secret';
 
 exports.register = async (req, res) => {
-  const { username, email, password } = req.body;
+  const username = req.body.username || req.body.name;
+  const { email, password } = req.body;
   if (!username || !email || !password) {
     return res.status(400).json({ message: 'Username, email and password are required' });
   }
@@ -30,9 +31,16 @@ exports.register = async (req, res) => {
     role,
   });
 
+  const token = jwt.sign(
+    { id: user._id, username: user.username, email: user.email, role: user.role },
+    JWT_SECRET,
+    { expiresIn: '6h' }
+  );
+
   res.status(201).json({
     message: 'Cadastro realizado com sucesso',
-    user: { username: user.username, email: user.email, role: user.role },
+    token,
+    user: { _id: user._id, id: user._id, username: user.username, email: user.email, role: user.role },
   });
 
   // Create notification for admin (fire-and-forget)

@@ -40,7 +40,7 @@ const storeSettingsSchema = new mongoose.Schema({
   },
   whatsappNumber: {
     type: String,
-    default: process.env.WHATSAPP_PHONE || '5571999313160'
+    default: process.env.WHATSAPP_PHONE || '554899813833'
   },
   freeShippingThreshold: {
     type: Number,

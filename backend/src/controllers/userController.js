@@ -74,7 +74,7 @@ exports.updateProfile = async (req, res) => {
     const user = await User.findById(req.user.id || req.user._id);
     if (!user) return res.status(404).json({ message: 'Usuário não encontrado' });
 
-    const { username, email, password, avatar, addresses, marketingPreferences } = req.body;
+    const { username, email, password, avatar, addresses, marketingPreferences, phone, cpf } = req.body;
 
     if (username) {
       const normalizedUsername = username.trim().toLowerCase();
@@ -102,6 +102,8 @@ exports.updateProfile = async (req, res) => {
     }
 
     if (avatar !== undefined) user.avatar = avatar;
+    if (phone !== undefined) user.phone = phone;
+    if (cpf !== undefined) user.cpf = cpf;
     if (addresses !== undefined) user.addresses = addresses;
     if (marketingPreferences !== undefined) user.marketingPreferences = marketingPreferences;
 

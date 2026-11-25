@@ -159,7 +159,7 @@ async function renderProduct() {
                 </button>
               `}
 
-              <a href="https://wa.me/5571999313160?text=Ol%C3%A1%2C%20tenho%20d%C3%BAvidas%20sobre%20a%20${encodeURIComponent(product.name)}" class="whatsapp-buy-btn" target="_blank">
+              <a href="https://wa.me/554899813833?text=Ol%C3%A1%2C%20tenho%20d%C3%BAvidas%20sobre%20o%20produto%20${encodeURIComponent(product.name)}" class="whatsapp-buy-btn" target="_blank" id="product-whatsapp-btn">
                 <i class="fab fa-whatsapp"></i> Dúvidas? Compre pelo WhatsApp
               </a>
               

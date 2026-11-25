@@ -958,17 +958,32 @@ async function finalizeOrder(subtotal, items, userData) {
       ? `34191.75000 ${Math.floor(Math.random()*100000).toString().padStart(5,'0')}.${Math.floor(Math.random()*1000000).toString().padStart(6,'0')} ${Math.floor(Math.random()*1000000).toString().padStart(6,'0')} 1 ${Date.now().toString().slice(-14)} ${computeTotal(subtotal).toFixed(2).replace('.','').padStart(10,'0')}`
       : '';
 
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch('/api/orders', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
+      headers,
       body: JSON.stringify({
         items: orderItems,
         paymentMethod: selectedPayment,
         shippingMethod: selectedShipping?.name || '',
         shippingPrice: selectedShipping?.price || 0,
+        shippingAddress: {
+          recipientName: formData.name || '',
+          phone: formData.phone || '',
+          zipCode: formData.address.cep || '',
+          street: formData.address.street || '',
+          number: formData.address.number || '',
+          complement: formData.address.complement || '',
+          neighborhood: formData.address.neighborhood || '',
+          city: formData.address.city || '',
+          state: formData.address.state || ''
+        },
+        customerPhone: formData.phone || '',
+        customerEmail: formData.email || '',
         pixCode,
         boletoCode,
       })

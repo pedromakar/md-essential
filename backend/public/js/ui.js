@@ -144,7 +144,7 @@ export function renderNav(activePage) {
 
         <!-- Utility Icons -->
         <div class="nav-utility">
-          <a href="/tracking" class="icon-button ${activePage === 'tracking' ? 'active' : ''}" title="Rastrear Pedido"><i class="fas fa-truck"></i></a>
+          <a href="/tracking" class="icon-button icon-button-tracking desktop-only ${activePage === 'tracking' ? 'active' : ''}" title="Rastrear Pedido"><i class="fas fa-truck"></i></a>
           <button id="search-toggle" class="icon-button"><i class="fas fa-search"></i></button>
           ${token ? `
             <a href="/account" class="icon-button ${activePage === 'account' ? 'active' : ''}"><i class="fas fa-user"></i></a>
@@ -165,22 +165,57 @@ export function renderNav(activePage) {
     <!-- Mega Menu Overlay -->
     <div class="mega-menu-overlay" id="mega-menu-overlay"></div>
 
-    <!-- Mobile Menu Drawer -->
+    <!-- Mobile Menu Drawer (Side Drawer Moderno Sem Sobreposição) -->
     <div class="mobile-menu-drawer" id="mobile-menu-drawer">
       <div class="drawer-header">
-        <span class="brand-link"><a href="/">MD ESSENTIAL</a></span>
-        <button class="close-drawers icon-button"><i class="fas fa-times"></i></button>
+        <div class="mobile-drawer-brand">
+          <a href="/">MD ESSENTIAL</a>
+        </div>
+        <button class="close-drawers icon-button" aria-label="Fechar menu">
+          <i class="fas fa-times"></i>
+        </button>
       </div>
-      <div class="drawer-body" style="justify-content: flex-start; align-items: stretch; padding-top: 32px;">
-        <a href="/products?gender=masculino" class="nav-link" style="font-size: 1.25rem; padding: 16px 0; border-bottom: 1px solid var(--color-border);">Masculino</a>
-        <a href="/products?gender=feminino" class="nav-link" style="font-size: 1.25rem; padding: 16px 0; border-bottom: 1px solid var(--color-border);">Feminino</a>
-        <a href="/category" class="nav-link" style="font-size: 1.25rem; padding: 16px 0; border-bottom: 1px solid var(--color-border);">Coleções</a>
-        <a href="/products?category=Acessórios" class="nav-link" style="font-size: 1.25rem; padding: 16px 0; border-bottom: 1px solid var(--color-border);">Acessórios</a>
-        <a href="/tracking" class="nav-link" style="font-size: 1.25rem; padding: 16px 0; border-bottom: 1px solid var(--color-border); color: #28a745;"><i class="fas fa-truck"></i> Rastrear Pedido</a>
-        ${!token ? `
-          <button id="mobile-login-toggle" class="button" style="margin-top: 32px; width: 100%;">ENTRAR / CRIAR CONTA</button>
+      <div class="drawer-body mobile-drawer-body">
+        <nav class="mobile-nav-list">
+          <a href="/products?gender=masculino" class="mobile-nav-item">
+            <span><i class="fas fa-mars"></i> Masculino</span>
+            <i class="fas fa-chevron-right mobile-nav-arrow"></i>
+          </a>
+          <a href="/products?gender=feminino" class="mobile-nav-item">
+            <span><i class="fas fa-venus"></i> Feminino</span>
+            <i class="fas fa-chevron-right mobile-nav-arrow"></i>
+          </a>
+          <a href="/category" class="mobile-nav-item">
+            <span><i class="fas fa-layer-group"></i> Coleções & Drops</span>
+            <i class="fas fa-chevron-right mobile-nav-arrow"></i>
+          </a>
+          <a href="/products?category=Acessórios" class="mobile-nav-item">
+            <span><i class="fas fa-tags"></i> Acessórios</span>
+            <i class="fas fa-chevron-right mobile-nav-arrow"></i>
+          </a>
+          
+          <div class="mobile-nav-divider"></div>
+          
+          <a href="/tracking" class="mobile-nav-item mobile-nav-highlight">
+            <span><i class="fas fa-truck" style="color: #22c55e;"></i> Rastrear Pedido</span>
+            <span class="badge-pill">Acompanhar</span>
+          </a>
+          <a href="https://wa.me/554899813833?text=Ol%C3%A1%2C%20gostaria%20de%20atendimento%20MD%20Essential" target="_blank" class="mobile-nav-item mobile-nav-whatsapp">
+            <span><i class="fab fa-whatsapp" style="color: #25D366;"></i> Atendimento WhatsApp</span>
+            <span class="badge-whatsapp">(48) 9981-3833</span>
+          </a>
+        </nav>
+      </div>
+      <div class="drawer-footer mobile-drawer-footer">
+        ${token ? `
+          <div class="mobile-drawer-user-info">
+            <span class="user-greeting"><i class="fas fa-user-circle"></i> Olá, <strong>${localStorage.getItem('username') || 'Cliente'}</strong></span>
+            <a href="/account" class="button button-small w-100" style="margin-top: 8px;">Minha Conta</a>
+          </div>
         ` : `
-          <a href="/account" class="button" style="margin-top: 32px; width: 100%; text-align: center;">MINHA CONTA</a>
+          <button id="mobile-login-toggle" class="button w-100">
+            <i class="fas fa-user"></i> ENTRAR / CRIAR CONTA
+          </button>
         `}
       </div>
     </div>
@@ -631,6 +666,7 @@ export function initDrawerEvents() {
     loginDrawer?.classList.remove('open');
     mobileMenuDrawer?.classList.remove('open');
     globalOverlay?.classList.remove('open');
+    document.body.style.overflow = '';
     closeSearchOverlay();
     closeMegaMenus();
   }
@@ -744,6 +780,10 @@ export function initDrawerEvents() {
     if (open) {
       mobileMenuDrawer?.classList.add('open');
       globalOverlay?.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    } else {
+      mobileMenuDrawer?.classList.remove('open');
+      document.body.style.overflow = '';
     }
   };
 
@@ -958,6 +998,14 @@ export function initDrawerEvents() {
       });
       const data = await res.json();
       if (!res.ok) { msg.textContent = data.message; msg.className = 'text-danger small text-center'; return; }
+      if (data.token) {
+        localStorage.setItem('md-essential-admin-token', data.token);
+        localStorage.setItem('username', data.user?.username || payload.username);
+        if (data.user?._id) localStorage.setItem('md-essential-user-id', data.user._id);
+        msg.textContent = 'CONTA CRIADA COM SUCESSO!'; msg.className = 'text-success small text-center';
+        setTimeout(() => window.location.reload(), 1000);
+        return;
+      }
       msg.textContent = 'CONTA CRIADA! FAÇA LOGIN.'; msg.className = 'text-success small text-center';
       setTimeout(() => loginTab.click(), 1500);
     } catch (err) { msg.textContent = 'Erro ao conectar.'; }

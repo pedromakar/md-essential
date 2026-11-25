@@ -281,12 +281,33 @@ exports.createProduct = async (req, res) => {
   try {
     const { name, description, category, price, countInStock, images, priority, badge, sizes, colors, benefits, gender } = req.body;
     const calcPriority = priority !== undefined ? Number(priority) : getProductPhotoPriority({ images, badge });
+
+    if (!isDbConnected()) {
+      const newP = {
+        _id: 'prod_' + Date.now(),
+        name,
+        description,
+        category: category || 'Geral',
+        price: Number(price) || 0,
+        countInStock: Number(countInStock) || 0,
+        images: Array.isArray(images) ? images : (images ? [images] : []),
+        priority: calcPriority,
+        badge: badge || '',
+        sizes: sizes || ['P', 'M', 'G', 'GG'],
+        colors: colors || [],
+        benefits: benefits || [],
+        gender: gender || 'unissex'
+      };
+      fallbackProducts.unshift(normalizeProductImages(newP));
+      return res.status(201).json(newP);
+    }
+
     const product = new Product({
       name,
       description,
       category,
-      price,
-      countInStock,
+      price: Number(price) || 0,
+      countInStock: Number(countInStock) || 0,
       images,
       priority: calcPriority,
       badge,
@@ -296,6 +317,10 @@ exports.createProduct = async (req, res) => {
       gender
     });
     await product.save();
+
+    // Sincroniza também no cache local de produtos
+    fallbackProducts.unshift(normalizeProductImages(product.toObject()));
+
     res.status(201).json(product);
   } catch (err) {
     res.status(400).json({ message: 'Invalid data', error: err.message });
@@ -305,14 +330,42 @@ exports.createProduct = async (req, res) => {
 exports.updateProduct = async (req, res) => {
   try {
     const { name, description, category, price, countInStock, images, priority, badge, sizes, colors, benefits, gender } = req.body;
+    
+    // Atualiza sempre no cache em memória
+    const fallbackIdx = fallbackProducts.findIndex(p => p._id === req.params.id || p.id === req.params.id);
+    if (fallbackIdx !== -1) {
+      const p = fallbackProducts[fallbackIdx];
+      if (name !== undefined) p.name = name;
+      if (description !== undefined) p.description = description;
+      if (category !== undefined) p.category = category;
+      if (price !== undefined) p.price = Number(price);
+      if (countInStock !== undefined) p.countInStock = Number(countInStock);
+      if (images !== undefined) p.images = Array.isArray(images) ? images : [images];
+      if (priority !== undefined) p.priority = Number(priority);
+      if (badge !== undefined) p.badge = badge;
+      if (sizes !== undefined) p.sizes = sizes;
+      if (colors !== undefined) p.colors = colors;
+      if (benefits !== undefined) p.benefits = benefits;
+      if (gender !== undefined) p.gender = gender;
+      fallbackProducts[fallbackIdx] = normalizeProductImages(p);
+    }
+
+    if (!isDbConnected()) {
+      if (fallbackIdx !== -1) return res.json(fallbackProducts[fallbackIdx]);
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
     const product = await Product.findById(req.params.id);
-    if (!product) return res.status(404).json({ message: 'Product not found' });
+    if (!product) {
+      if (fallbackIdx !== -1) return res.json(fallbackProducts[fallbackIdx]);
+      return res.status(404).json({ message: 'Product not found' });
+    }
 
     product.name = name ?? product.name;
     product.description = description ?? product.description;
     product.category = category ?? product.category;
-    product.price = price ?? product.price;
-    product.countInStock = countInStock ?? product.countInStock;
+    product.price = price !== undefined ? Number(price) : product.price;
+    product.countInStock = countInStock !== undefined ? Number(countInStock) : product.countInStock;
     product.images = Array.isArray(images) ? images : product.images;
     if (priority !== undefined) {
       product.priority = Number(priority);
@@ -334,8 +387,17 @@ exports.updateProduct = async (req, res) => {
 
 exports.deleteProduct = async (req, res) => {
   try {
+    const fallbackIdx = fallbackProducts.findIndex(p => p._id === req.params.id || p.id === req.params.id);
+    if (fallbackIdx !== -1) {
+      fallbackProducts.splice(fallbackIdx, 1);
+    }
+
+    if (!isDbConnected()) {
+      return res.json({ message: 'Product deleted' });
+    }
+
     const product = await Product.findByIdAndDelete(req.params.id);
-    if (!product) return res.status(404).json({ message: 'Product not found' });
+    if (!product && fallbackIdx === -1) return res.status(404).json({ message: 'Product not found' });
     res.json({ message: 'Product deleted' });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
@@ -362,13 +424,17 @@ exports.checkCanReview = async (req, res) => {
     const userId = req.user.id || req.user._id;
     const Order = require('../models/order');
 
-    // Verifica se o usuário tem algum pedido contendo este produto
+    // Verifica se o usuário tem algum pedido contendo este produto (por ID ou e-mail)
     const order = await Order.findOne({
-      user: userId,
-      'items.productId': product._id
+      $or: [
+        { user: userId, 'items.productId': product._id },
+        { customerEmail: req.user.email, 'items.productId': product._id }
+      ]
     });
 
-    if (!order && !req.user.isAdmin) {
+    const isAdmin = req.user.role === 'admin' || req.user.isAdmin;
+
+    if (!order && !isAdmin) {
       return res.json({
         canReview: false,
         reason: 'not_purchased',
@@ -408,11 +474,15 @@ exports.createProductReview = async (req, res) => {
     const userId = req.user.id || req.user._id;
     const Order = require('../models/order');
     const hasPurchased = await Order.findOne({
-      user: userId,
-      'items.productId': product._id
+      $or: [
+        { user: userId, 'items.productId': product._id },
+        { customerEmail: req.user.email, 'items.productId': product._id }
+      ]
     });
 
-    if (!hasPurchased && !req.user.isAdmin) {
+    const isAdmin = req.user.role === 'admin' || req.user.isAdmin;
+
+    if (!hasPurchased && !isAdmin) {
       return res.status(403).json({
         message: 'Apenas clientes que compraram este produto podem avaliá-lo.'
       });

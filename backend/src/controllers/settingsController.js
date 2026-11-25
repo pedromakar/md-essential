@@ -12,7 +12,7 @@ let fallbackSettings = {
   heroButtonText: 'VER COLEÇÃO',
   heroBannerUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1600&q=80',
   categoryImages: {},
-  whatsappNumber: process.env.WHATSAPP_PHONE || '5571999313160',
+  whatsappNumber: process.env.WHATSAPP_PHONE || '554899813833',
   freeShippingThreshold: 198
 };
 

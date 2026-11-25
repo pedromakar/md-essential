@@ -49,7 +49,7 @@ const userSchema = new mongoose.Schema({
   cart: [
     {
       product: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.Mixed,
         ref: 'Product',
         required: true,
       },

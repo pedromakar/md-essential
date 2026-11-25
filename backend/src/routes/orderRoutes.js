@@ -1,11 +1,27 @@
 const express = require('express');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
 const orderController = require('../controllers/orderController');
 const auth = require('../middlewares/auth');
 const admin = require('../middlewares/admin');
 
+// Middleware de autenticação opcional (permite compra como convidado ou vinculada à conta)
+const optionalAuth = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    if (token && token !== 'null' && token !== 'undefined') {
+      try {
+        const secret = process.env.JWT_SECRET || 'change_this_secret';
+        req.user = jwt.verify(token, secret);
+      } catch (err) {}
+    }
+  }
+  next();
+};
+
 // POST /api/orders
-router.post('/orders', auth, orderController.createOrder);
+router.post('/orders', optionalAuth, orderController.createOrder);
 
 // GET /api/orders/:userId
 router.get('/orders/:userId', auth, orderController.getOrdersByUser);
@@ -23,7 +39,7 @@ router.post('/shipping/calculate', orderController.calculateShipping);
 
 // MERCADO PAGO CHECKOUT PRO
 // POST /api/checkout/mercadopago/create-preference
-router.post('/checkout/mercadopago/create-preference', auth, orderController.createMercadoPagoPreference);
+router.post('/checkout/mercadopago/create-preference', optionalAuth, orderController.createMercadoPagoPreference);
 
 // POST /api/checkout/mercadopago/webhook (e alias /api/orders/webhook/mercadopago)
 router.post('/checkout/mercadopago/webhook', orderController.handleMercadoPagoWebhook);

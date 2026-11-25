@@ -2,7 +2,6 @@ import { renderNav, renderFooter, initDrawerEvents, updateCartBadge } from './ui
 
 const root = document.getElementById('page-root');
 root.innerHTML = `
-  ${renderNav('login')}
   ${renderNav('register')}
   <main class="content">
     <section class="box form-box">
@@ -57,12 +56,18 @@ registerForm.addEventListener('submit', async (event) => {
       return;
     }
 
-    registerMessage.textContent = 'Cadastro realizado com sucesso! Redirecionando para login...';
+    if (data.token) {
+      localStorage.setItem('md-essential-admin-token', data.token);
+      localStorage.setItem('username', data.user?.username || username);
+      if (data.user?._id) localStorage.setItem('md-essential-user-id', data.user._id);
+    }
+
+    registerMessage.textContent = 'Cadastro realizado com sucesso! Redirecionando...';
     const redirectParam = new URLSearchParams(window.location.search).get('redirect');
-    const targetUrl = redirectParam ? `/login.html?redirect=${encodeURIComponent(redirectParam)}` : '/login';
+    const targetUrl = redirectParam === 'account' ? '/account.html' : (redirectParam ? `/${redirectParam}` : '/account.html');
     setTimeout(() => {
       window.location.href = targetUrl;
-    }, 1200);
+    }, 1000);
   } catch (error) {
     registerMessage.textContent = 'Erro ao conectar com o servidor.';
   }

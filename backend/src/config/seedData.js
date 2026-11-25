@@ -402,7 +402,7 @@ const defaultSettings = {
     'Croppeds': 'https://images.unsplash.com/photo-1518310383802-640c2de311b2?auto=format&fit=crop&w=800&q=80',
     'Tops': 'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=800&q=80'
   },
-  whatsappNumber: '5571999313160',
+  whatsappNumber: '554899813833',
   freeShippingThreshold: 198
 };
 
@@ -470,11 +470,11 @@ async function seedInitialData(models) {
       console.log('✅ Configurações visuais padrão da loja criadas.');
     }
 
-    // 4. Products (Garante que os produtos principais e novas peças estejam sempre cadastrados)
+    // 4. Products (Garante que novas peças sejam inseridas sem sobrescrever edições do admin)
     for (const p of products) {
       await Product.findOneAndUpdate(
         { name: p.name },
-        { $set: p },
+        { $setOnInsert: p },
         { upsert: true, new: true }
       );
     }
