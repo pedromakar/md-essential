@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const StoreSettings = require('../models/storeSettings');
+const { getConnectionStatus } = require('../config/db');
 
 // Fallback in-memory settings in case DB is offline or not yet initialized
 let fallbackSettings = {
@@ -22,17 +23,19 @@ function isDbConnected() {
 
 exports.getSettings = async (req, res) => {
   try {
+    const dbStatus = typeof getConnectionStatus === 'function' ? getConnectionStatus() : null;
     if (!isDbConnected()) {
-      return res.json(fallbackSettings);
+      return res.json({ ...fallbackSettings, dbStatus });
     }
     let settings = await StoreSettings.findOne();
     if (!settings) {
       settings = await StoreSettings.create({});
     }
-    res.json(settings);
+    const settingsObj = settings.toObject ? settings.toObject() : settings;
+    res.json({ ...settingsObj, dbStatus });
   } catch (err) {
     console.error('Error fetching store settings:', err);
-    res.json(fallbackSettings);
+    res.json({ ...fallbackSettings, dbStatus: typeof getConnectionStatus === 'function' ? getConnectionStatus() : null });
   }
 };
 
